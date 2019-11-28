@@ -2,7 +2,7 @@ class branch_predictor
 {
 public:
     branch_predictor(unsigned int t);
-    bool predict();
+    bool predict(int dest);
     void update_state(bool taken);
     
 private:

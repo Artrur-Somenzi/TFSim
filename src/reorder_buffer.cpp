@@ -49,6 +49,7 @@ void reorder_buffer::leitura_issue()
     string inst;
     vector<string> ord;
     int pos,regst;
+    int dest;
     float value;
     bool check_value;
     auto cat = gui_table.at(0);
@@ -79,6 +80,7 @@ void reorder_buffer::leitura_issue()
         {
             check_value = false;
             regst = ask_status(true,ord[1]);
+
             if(regst != 0)
             {
                 if(ptrs[regst-1]->ready == true)
@@ -106,6 +108,7 @@ void reorder_buffer::leitura_issue()
             ptrs[pos]->destination = ord[1];
             regst = ask_status(true,ord[1]);
             check_value = false;
+
             if(regst != 0)
             {
                 if(ptrs[regst-1]->ready == true)
@@ -139,22 +142,39 @@ void reorder_buffer::leitura_issue()
                     if(check_value == false)
                         value = ask_value(true,ord[2]);
                     ptrs[pos]->vk = value;
+
                 }
                 else
                     ptrs[pos]->qk = regst;
                 ptrs[pos]->destination = ord[3];
                 cat.at(pos).text(DESTINATION,ord[3]);
+                
+                
+                dest = stoi(ord[3]);
+                
             }
             else
             {
                 cat.at(pos).text(DESTINATION,ord[2]);
                 ptrs[pos]->destination = ord[2];
+                
+                
+                dest = stoi(ord[2]);
+                
+                
+                
             }
-            ptrs[pos]->prediction = preditor.predict();
-            if(preditor.predict())
+            ptrs[pos]->prediction = preditor.predict(dest);
+            if(preditor.predict(dest))
+            {   
                 out_iq->write("S " + std::to_string(ptrs[pos]->entry) +  ' ' + ptrs[pos]->destination);
+               
+            }
             else
+            {    
                 out_iq->write("S " + std::to_string(ptrs[pos]->entry));
+               
+            }
             if(ptrs[pos]->qj == 0 && ptrs[pos]->qk == 0)
                 ptrs[pos]->ready = true;
         }
@@ -162,6 +182,12 @@ void reorder_buffer::leitura_issue()
         {
             ptrs[pos]->destination = ord[1];
             cat.at(pos).text(DESTINATION,ord[1]);
+            
+            
+            
+            
+            
+            
             if(ord[0].at(0) != 'L')
                 wait(resv_read_oper_event);
             ask_status(false,ord[1],pos+1);
@@ -188,7 +214,12 @@ void reorder_buffer::new_rob_head()
         wait(SC_ZERO_TIME);
         cat.at(rob_buff[0]->entry-1).text(STATE,"Commit");
         if(rob_buff[0]->instruction.at(0) == 'S')
+        {    
+           
+           
+           
             mem_write(std::stoi(rob_buff[0]->destination),rob_buff[0]->value,rob_buff[0]->entry);
+        }
         else if(rob_buff[0]->instruction.at(0) == 'B')
         {
             instr_queue_gui.at(rob_buff[0]->instr_pos).text(EXEC,"X");
@@ -201,17 +232,31 @@ void reorder_buffer::new_rob_head()
             if(pred != rob_buff[0]->prediction)
             {
                 if(pred)
+                {
                     out_iq->write(rob_buff[0]->destination + ' ' + std::to_string(rob_buff[0]->entry));
+
+                }
                 else
+                {
                     out_iq->write("R " + std::to_string(rob_buff[0]->entry));
+
+                }
                 cout << "-----------------LIMPANDO ROB no ciclo " << sc_time_stamp() << " -----------------" << endl << flush;
                 _flush(); //Esvazia o ROB
+                //std::cout << "\n====================261 passou flush=================\n";
+                //std::cout << "\n==================== vai executar out_resv_adu->write(F);=================\n";
                 out_resv_adu->write("F");
+                //std::cout << "\n==================== passou out_resv_adu->write(F);=================\n";
+                //std::cout << "\n+++++++++++++++++++++++++++++++++++++\n" << out_resv_adu << "\n+++++++++++++++++++++++++++\n"
                 out_slb->write("F");
+                
                 out_rb->write("F");
+                
                 out_adu->write("F");
+                
             }
             preditor.update_state(pred);
+
         }
         else
         {
@@ -243,6 +288,7 @@ void reorder_buffer::leitura_cdb()
     auto cat = gui_table.at(0);
     string p;
     vector<string> ord;
+    
     while(true)
     {
         in_cdb->read(p);
@@ -273,6 +319,7 @@ void reorder_buffer::leitura_adu()
     vector<string> ord;
     unsigned int index;
     auto cat = gui_table.at(0);
+    
     while(true)
     {
         in_adu->read(p);
@@ -297,6 +344,7 @@ void reorder_buffer::check_conflict()
     string p;
     unsigned int rob_pos,last_st;
     vector<string> ord;
+    
     while(true)
     {
         last_st = 0;
@@ -396,6 +444,7 @@ void reorder_buffer::value_check()
 {
     string p,value;
     auto cat = gui_table.at(0);
+
     while(true)
     {
         in_resv_adu->read(p);
@@ -405,9 +454,14 @@ void reorder_buffer::value_check()
         {
             int index = std::stoi(p);
             if(ptrs[index-1]->ready)
-                out_resv_adu->write(cat.at(index-1).text(VALUE));
+            {   out_resv_adu->write(cat.at(index-1).text(VALUE));
+                
+            }
             else
+            {
                 out_resv_adu->write("EMPTY");
+                
+            }
         }
         wait();
     }
@@ -417,6 +471,7 @@ void reorder_buffer::_flush()
     auto cat = gui_table.at(0);
     rob_buff.clear();
     last_rob = 0;
+    
     for(unsigned int i = 0 ; i < tam ; i++)
     {
         ptrs[i]->busy = false;
@@ -432,13 +487,15 @@ void reorder_buffer::_flush()
 }
 bool reorder_buffer::branch(int optype,int rs,int rt)
 {
-    switch(optype)
+        switch(optype)
     {
         case 0:
+            
             if(rs == rt)
                 return true;
-            return false;
+            return false;           
         case 1:
+            
             if(rs != rt)
                 return true;
             return false;
@@ -451,6 +508,7 @@ bool reorder_buffer::branch(int optype,int rs,int rt)
 }
 bool reorder_buffer::branch(int optype,float value)
 {
+    
     switch(optype)
     {
         case 2:

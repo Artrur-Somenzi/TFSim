@@ -22,7 +22,7 @@ int sc_main(int argc, char *argv[])
 {
     using namespace nana;
     vector<string> instruction_queue;
-    int nadd,nmul,nls;
+    int nadd,nmul,nls/*,pred_type=0*/;
     nadd = 3;
     nmul = nls = 2;
     std::vector<int> sizes;
@@ -79,6 +79,7 @@ int sc_main(int argc, char *argv[])
         set_spec(plc,spec);
     });
     op.check_style(0,menu::checks::highlight);
+
     op.append("Modificar valores...");
     auto sub = op.create_sub_menu(1);
     sub->append("Número de Estações de Reserva",[&](menu::item_proxy ip)
@@ -539,8 +540,48 @@ int sc_main(int argc, char *argv[])
             }
         }
     }
+
+/*//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++    
+    op.append("Predição estática T",[&](menu::item_proxy &ip)
+    {
+        if(ip.checked())
+        {    
+            spec = false;
+            pred_type=1;
+            printf("selecionado T\n");
+        }
+        else
+        {
+            spec = false;
+            pred_type=0;
+            printf("desselecionado T\n");
+        set_spec(plc,spec);
+        }
+    });
+    op.check_style(4,menu::checks::highlight);
+
+    op.append("Predição estática NT",[&](menu::item_proxy &ip)
+    {
+        if(ip.checked())
+        {
+            spec = false;
+            pred_type=2;
+            printf("selecionado NT\n");
+        }
+        else
+        {
+            spec = false;
+            pred_type=0;
+            printf("desselecionado NT\n");
+        }
+        set_spec(plc,spec);
+    });
+    op.check_style(5,menu::checks::highlight);    
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+*/
+
     clock_control.enabled(false);
-    botao.events().click([&]
+    botao.events().click([&]    
     {
         if(fila)
         {
@@ -550,14 +591,28 @@ int sc_main(int argc, char *argv[])
             op.enabled(0,false);
             op.enabled(1,false);
             op.enabled(3,false);
+            //op.enabled(4,false);
+            //op.enabled(5,false);
             for(int i = 0 ; i < 6 ; i++)
                 sub->enabled(i,false);
             for(int i = 0 ; i < 5 ; i++)
                 bench_sub->enabled(i,false);
             if(spec)
+            {    
                 top1.rob_mode(nadd,nmul,nls,instruct_time,instruction_queue,table,memory,reg,instruct,clock_count,rob);
+            }
+       /*     else if(pred_type==1)                
+            {    top1.rob_mode(nadd,nmul,nls,instruct_time,instruction_queue,table,memory,reg,instruct,clock_count,rob);
+                printf("Com Predição T\n");
+            }
+            else if(pred_type==2)                
+            {    top1.rob_mode(nadd,nmul,nls,instruct_time,instruction_queue,table,memory,reg,instruct,clock_count,rob);
+                printf("Com Predição NT\n");
+            }*/
             else
+            {
                 top1.simple_mode(nadd,nmul,nls,instruct_time,instruction_queue,table,memory,reg,instruct,clock_count);
+            }
             sc_start();
         }
         else

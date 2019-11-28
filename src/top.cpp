@@ -81,6 +81,10 @@ void top::rob_mode(unsigned int nadd, unsigned int nmul,unsigned int nload,map<s
     slb_r = unique_ptr<sl_buffer_rob>(new sl_buffer_rob("sl_buffer_rob",nload,nadd+nmul,instruct_time,table,instr_gui.at(0),rob_gui.at(0)));
     mem_r = unique_ptr<memory_rob>(new memory_rob("memory_rob", mem_gui));
 
+    //pred_type = unique_ptr<bus>(new bus("pred_type"));
+
+    //pred_type->pred_type(*pred_type);
+
     clk->out(*clock_bus);
 
     fila_r->in(*clock_bus);
@@ -144,4 +148,6 @@ void top::rob_mode(unsigned int nadd, unsigned int nmul,unsigned int nload,map<s
     mem_r->in(*mem_bus);
     mem_r->out(*CDB);
     mem_r->out_slb(*mem_slb_bus);
+
+
 }
